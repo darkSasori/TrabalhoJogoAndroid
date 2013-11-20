@@ -41,12 +41,14 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 
 public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouchListener {
 
+	public static final int SENTIDO_UP = -1;
+	public static final int SENTIDO_DOWN = 1;
 	public static final int WIDTH = 800;
 	public static final int HEIGHT = 600;
 	private static final int TAMANHO = 100;
-	public static final float VELOCITY = 200.0f;
+	public static final float VELOCITY = 250.0f;
 	public static final FixtureDef FIXTURE_DEF = PhysicsFactory.createFixtureDef(1, 0.5f, 0.5f);
-	public static final int MAX_PONTO = 30;
+	public static final int MAX_PONTO = 50;
 	final FPSLogger fps = new FPSLogger();
 
 	private Camera camera;	
@@ -106,15 +108,15 @@ public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouc
 		this.scene.attachChild(left);
 		this.scene.attachChild(right);
 
-		this.base = new Rectangle((WIDTH - 50), ((HEIGHT / 2) - (TAMANHO / 2)), 10, TAMANHO, this.mEngine.getVertexBufferObjectManager());
+		this.base = new Rectangle((WIDTH - 70), ((HEIGHT / 2) - (TAMANHO / 2)), 10, TAMANHO, this.mEngine.getVertexBufferObjectManager());
 		this.base.setColor(Color.WHITE);
 		this.bodyBase = PhysicsFactory.createBoxBody(this.physics, this.base, BodyType.StaticBody, FIXTURE_DEF);
 
 		this.scene.attachChild(this.base);
 		this.physics.registerPhysicsConnector(new PhysicsConnector(this.base, this.bodyBase, true, true));
 		
-		final float centerX = (WIDTH - this.mFaceTextureRegion.getWidth()) / 2;
-        final float centerY = (HEIGHT - this.mFaceTextureRegion.getHeight()) / 2;
+		final float centerX = (WIDTH + this.mFaceTextureRegion.getWidth()) / 2;
+        final float centerY = (HEIGHT + this.mFaceTextureRegion.getHeight()) / 2;
 		final Ball ball = new Ball(centerX, centerY, this.mFaceTextureRegion,this.mEngine.getVertexBufferObjectManager());
 
 		this.scene.attachChild(ball);
@@ -134,14 +136,13 @@ public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouc
 			@Override
 			public void onUpdate(float pSecondsElapsed) {
 				// TODO Auto-generated method stub
-				if( ball.collidesWith(base) ){
-					ball.mudaDirecao();
-				}
-				for( int x = 0; x < pontos.size(); x++ ){
-					if( ball.collidesWith(pontos.get(x)) ){
-						ball.mudaDirecao();
-						scene.detachChild(pontos.get(x));
-						pontos.remove(x);
+				if( !ball.checkCollide(base) ){
+					for( int x = 0; x < pontos.size(); x++ ){
+						if( ball.checkCollide(pontos.get(x)) ){
+							scene.detachChild(pontos.get(x));
+							pontos.remove(x);
+							break;
+						}
 					}
 				}
 					
@@ -156,7 +157,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouc
 	public boolean onSceneTouchEvent(Scene pScene, TouchEvent pSceneTouchEvent) {
 		if (this.physics != null) {
 			if (pSceneTouchEvent.isActionMove()) {
-				this.bodyBase.setTransform((WIDTH - 50)/32, pSceneTouchEvent.getY()/32, 0);
+				this.bodyBase.setTransform((WIDTH - 70)/32, pSceneTouchEvent.getY()/32, 0);
 			}
 		}
 		return false;
@@ -164,7 +165,7 @@ public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouc
 
 	private void createPontos(){
 		this.pontos = new Vector<Rectangle>();
-		int x = 10;
+		int x = 50;
 		
 		for( int i = 0; i < (MAX_PONTO/10); i++ ){
 			
@@ -201,6 +202,23 @@ public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouc
 	            this.registerUpdateHandler(this.physics);
 	            this.physics.setVelocity(MainActivity.VELOCITY, MainActivity.VELOCITY);
 	    }
+	    
+	    public boolean checkCollide(Rectangle rect){
+	    	if( !this.collidesWith(rect) )
+	    		return false;
+
+	    	
+	    	if( this.mX <= (rect.getX()+rect.getWidth()) && (this.mX+this.mWidth) >= (rect.getX()+rect.getWidth()) )
+	    		this.physics.setVelocityX(MainActivity.VELOCITY*MainActivity.SENTIDO_DOWN);
+	    	else if( (this.mX+this.mWidth) >= rect.getX() && this.mX <= (rect.getX()+rect.getWidth()) )
+	    		this.physics.setVelocityX(MainActivity.VELOCITY*MainActivity.SENTIDO_UP);
+	    	else if( this.mY <= (rect.getY()+rect.getHeight()) && (this.mY+this.mHeight) >= (rect.getY()+rect.getHeight()) )
+	    		this.physics.setVelocityY(MainActivity.VELOCITY*MainActivity.SENTIDO_DOWN);
+	    	else
+	    		this.physics.setVelocityY(MainActivity.VELOCITY*MainActivity.SENTIDO_UP);
+
+	    	return true;
+	    }
 
 	    @Override
 	    protected void onManagedUpdate(final float pSecondsElapsed) {
@@ -219,8 +237,8 @@ public class MainActivity extends SimpleBaseGameActivity implements IOnSceneTouc
 	            super.onManagedUpdate(pSecondsElapsed);
 	    }
 	    
-	    public void mudaDirecao(){
-	    	this.physics.setVelocityX(-MainActivity.VELOCITY);
+	    public void mudaDirecao(int direcao){
+	    	this.physics.setVelocityX(MainActivity.VELOCITY * direcao);
 	    }
 		
 
